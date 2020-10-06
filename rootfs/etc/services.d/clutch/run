@@ -236,7 +236,7 @@ process_video() {
         log "ERROR: Could not identify titles in '${video}' (${hash})..."
         cmd_rc=1
     else
-        log "Starting conversion of '${video}' (${hash}) using preset '${AC_PRESET}'..."
+        log "Starting conversion of '${video}' (${hash}) ..."
         log "${NUM_VIDEO_TITLES} title(s) to process."
     fi
 
@@ -269,7 +269,7 @@ process_video() {
         # Call pre conversion hook.
         if [ -f /config/hooks/pre_conversion.sh ]; then
             log "Executing pre-conversion hook..."
-            /usr/bin/with-contenv sh /config/hooks/pre_conversion.sh "$OUTPUT_FILE" "$video" "$AC_PRESET"
+            /usr/bin/with-contenv sh /config/hooks/pre_conversion.sh "$OUTPUT_FILE" "$video"
             log "Pre-conversion hook exited with $?"
         fi
 
@@ -282,11 +282,13 @@ process_video() {
 
         # Clutch overwrites previously processed files
         # Check whether destination already exists
-        #if [ -f "$OUTPUT_FILE" ]; then
-        #    cmd_rc=1
-        #    log "ERROR: Destination file '$OUTPUT_FILE' already exists."
-        #    break
-        #fi
+        if [ -f "$OUTPUT_FILE" ] && [ "$AC_OVERWRITE_OUTPUT" == "0" ]; then
+            cmd_rc=1
+            log "ERROR: Destination file '$OUTPUT_FILE' already exists."
+            break
+        elif [ -f "$OUTPUT_FILE" ] && [ "$AC_OVERWRITE_OUTPUT" == "1" ]; then
+            log "WARNING: Overwriting '$OUTPUT_FILE'"
+        fi
 
         # Set the temporary output directory: this is where the video will be
         # actually written before being moved its final location once conversion is
@@ -325,14 +327,14 @@ process_video() {
         # successfully.
         if [ $cmd_rc -eq 0 ]; then
             mkdir -p "$OUTPUT_DIR"
-            mv "$OUTPUT_FILE_TMP" "$OUTPUT_FILE"
+            mv -f "$OUTPUT_FILE_TMP" "$OUTPUT_FILE"
         fi
         rm -rf "$OUTPUT_DIR_TMP"
 
         # Call post conversion hook.
         if [ -f /config/hooks/post_conversion.sh ]; then
             log "Executing post-conversion hook..."
-            /usr/bin/with-contenv sh /config/hooks/post_conversion.sh $cmd_rc "$OUTPUT_FILE" "$video" "$AC_PRESET"
+            /usr/bin/with-contenv sh /config/hooks/post_conversion.sh $cmd_rc "$OUTPUT_FILE" "$video"
             log "Post-conversion hook exited with $?"
         fi
 
@@ -358,11 +360,6 @@ process_video() {
     else
         log "Conversion failed."
         log "For more details about the failure, see $CONVERSIONS_LOG."
-        if ! echo "$AC_PRESET" | grep -q "/"; then
-            log "NOTE: The configured preset doesn't seem to include its category.  A preset must"
-            log "      must now be identified using the following format: '<CATEGORY>/<PRESET NAME>'."
-            log "      This may be the cause of the current failure."
-        fi
         echo "$video $hash" >> "$FAILED_CONVERSIONS"
     fi
 }
@@ -423,7 +420,6 @@ while true; do
         fi
 
         # Set default settings.
-        AC_PRESET="${AUTOMATED_CONVERSION_PRESET:-Very Fast 1080p30}"
         AC_SOURCE_STABLE_TIME="${AUTOMATED_CONVERSION_SOURCE_STABLE_TIME:-5}"
         AC_SOURCE_MIN_DURATION="${AUTOMATED_CONVERSION_SOURCE_MIN_DURATION:-10}"
         AC_OUTPUT_DIR="${AUTOMATED_CONVERSION_OUTPUT_DIR:-/output}"
@@ -433,10 +429,11 @@ while true; do
         AC_NON_VIDEO_FILE_EXTENSIONS="${AUTOMATED_CONVERSION_NON_VIDEO_FILE_EXTENSIONS:-jpg jpeg bmp png gif txt nfo}"
         AC_CLUTCH_CUSTOM_ARGS="${AUTOMATED_CONVERSION_CLUTCH_CUSTOM_ARGS:-}"
         AC_INPUT="${AUTOMATED_CONVERSION_INPUT:-edl}"
+        AC_OVERWRITE_OUTPUT="${AUTOMATED_CONVERSION_SOURCE_STABLE_TIME:-0}"
 
         # Apply per-watch folder settings.
         if [ -n "${DIR#*/watch}" ]; then
-            for VAR in PRESET SOURCE_STABLE_TIME SOURCE_MIN_DURATION OUTPUT_DIR OUTPUT_SUBDIR KEEP_SOURCE NON_VIDEO_FILE_ACTION NON_VIDEO_FILE_EXTENSIONS CLUTCH_CUSTOM_ARGS
+            for VAR in SOURCE_STABLE_TIME SOURCE_MIN_DURATION OUTPUT_DIR OUTPUT_SUBDIR KEEP_SOURCE NON_VIDEO_FILE_ACTION NON_VIDEO_FILE_EXTENSIONS CLUTCH_CUSTOM_ARGS OVERWRITE_OUTPUT
             do
                 eval "AC_$VAR=\"\${AUTOMATED_CONVERSION_${VAR}_${DIR#*/watch}:-\$AC_$VAR}\""
             done
