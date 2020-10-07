@@ -64,8 +64,7 @@ COPY rootfs/ /
 
 # Set environment variables.
 ENV APP_NAME="Clutch" \
-    AUTOMATED_CONVERSION_INPUT="edl" \
-    AUTOMATED_CONVERSION_FORMAT="mp4"
+    AUTOMATED_CONVERSION_INPUT="edl"
 
 # Define mountable directories.
 VOLUME ["/config"]
