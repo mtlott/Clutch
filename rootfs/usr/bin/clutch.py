@@ -116,7 +116,7 @@ def main(argv):
     # Block to generate "stream fix command"
     # Example:
     # ffmpeg -i Days\ of\ Thunder\ \(1990\)\ 2020-09-19-1730.mpg -map 0:v:0 -map 0:a:1 -acodec copy -vcodec copy Days\ of\ Thunder\ \(1990\)\ 2020-09-19-1730.fix.mpg
-    cmd = "ffmpeg -i \"{0}\" -map 0:v:0 -map 0:a:0 -acodec copy -vcodec copy \"{1}\"".format(pathname, fix)
+    cmd = "ffmpeg -i \"{0}\" -map 0:v:0 -map 0:a:0 -acodec copy -vcodec copy \"{1}\" 2>&1".format(pathname, fix)
     if debug:
         print("Stream fix command...\n {0}".format(cmd))
     cmds.append(cmd)
@@ -148,10 +148,10 @@ def main(argv):
     trim = list()
     clean = list()
     text = list()
-    join = "ffmpeg -f concat -safe 0 -i \"{0}/{1}.txt\" -c copy \"{2}\"".format(tmp, basename, out)
+    join = "ffmpeg -f concat -safe 0 -i \"{0}/{1}.txt\" -c copy \"{2}\" 2>&1".format(tmp, basename, out)
     for i in range(n):
         if ( float(seg[i][1]) != 0.0 ):
-            trim.append("ffmpeg -ss {5} -i \"{1}\" -to {6} -async 1 -vcodec copy -acodec copy \"{2}/{3}.part{0}{4}\"".format(i, fix, tmp, basename, ext, seg[i][0], seg[i][1]))
+            trim.append("ffmpeg -ss {5} -i \"{1}\" -to {6} -async 1 -vcodec copy -acodec copy \"{2}/{3}.part{0}{4}\" 2>&1".format(i, fix, tmp, basename, ext, seg[i][0], seg[i][1]))
             text.append("echo file \"\'{1}/{2}.part{0}{3}\'\" >> \"{1}/{2}.txt\"".format(i, tmp, basename, ext))
             clean.append("rm \"{1}/{2}.part{0}{3}\"".format(i, tmp, basename, ext))
             if debug:
